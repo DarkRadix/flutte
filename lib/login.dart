@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'principal.dart';
+// IMPORTANTE: Certifique-se de que o nome do arquivo abaixo está correto
+import 'jogos.dart';
 import 'cadastro.dart';
 
 class LoginPage extends StatefulWidget {
@@ -14,16 +15,12 @@ class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
   bool loading = false;
-  
-  // Variável para controlar a visibilidade da senha
   bool _senhaVisivel = false;
 
-  // Paleta de cores inspirada no Flutter
-  final Color azulEscuro = const Color(0xFF0D47A1); // Blue 900
-  final Color azulMedio = const Color(0xFF1976D2);  // Blue 700
+  final Color azulEscuro = const Color(0xFF0D47A1);
+  final Color azulMedio = const Color(0xFF1976D2);
 
   Future<void> login() async {
-    // Esconde o teclado assim que o usuário clica no botão
     FocusScope.of(context).unfocus();
 
     setState(() => loading = true);
@@ -34,9 +31,11 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (!mounted) return;
+
+      // ALTERAÇÃO AQUI: Agora ele envia para a JogosPage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const PrincipalPage()),
+        MaterialPageRoute(builder: (_) => const JogosPage()),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,7 +67,11 @@ class _LoginPageState extends State<LoginPage> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                const Icon(Icons.lock_person_rounded, size: 80, color: Colors.white),
+                const Icon(
+                  Icons.lock_person_rounded,
+                  size: 80,
+                  color: Colors.white,
+                ),
                 const SizedBox(height: 10),
                 const Text(
                   "Bem-vindo",
@@ -85,7 +88,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 40),
 
-                // Card do Formulário
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -96,19 +98,23 @@ class _LoginPageState extends State<LoginPage> {
                         color: Colors.black26,
                         blurRadius: 15,
                         offset: Offset(0, 5),
-                      )
+                      ),
                     ],
                   ),
                   child: Column(
                     children: [
-                      // Campo de Email
                       TextField(
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           labelText: "E-mail",
-                          prefixIcon: Icon(Icons.email_outlined, color: azulMedio),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          prefixIcon: Icon(
+                            Icons.email_outlined,
+                            color: azulMedio,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Colors.black12),
@@ -117,17 +123,20 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Campo de Senha com Olhinho
                       TextField(
                         controller: senhaController,
                         obscureText: !_senhaVisivel,
                         decoration: InputDecoration(
                           labelText: "Senha",
-                          prefixIcon: Icon(Icons.lock_outline, color: azulMedio),
-                          // Ícone para mostrar/esconder senha
+                          prefixIcon: Icon(
+                            Icons.lock_outline,
+                            color: azulMedio,
+                          ),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _senhaVisivel ? Icons.visibility : Icons.visibility_off,
+                              _senhaVisivel
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                               color: Colors.grey,
                             ),
                             onPressed: () {
@@ -136,7 +145,9 @@ class _LoginPageState extends State<LoginPage> {
                               });
                             },
                           ),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Colors.black12),
@@ -145,7 +156,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 30),
 
-                      // Botão de Entrar
                       SizedBox(
                         width: double.infinity,
                         height: 55,
@@ -170,7 +180,10 @@ class _LoginPageState extends State<LoginPage> {
                                 )
                               : const Text(
                                   "ENTRAR",
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                         ),
                       ),
@@ -180,7 +193,6 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 25),
 
-                // Botão de Criar Conta
                 TextButton(
                   onPressed: () {
                     Navigator.push(
@@ -190,7 +202,10 @@ class _LoginPageState extends State<LoginPage> {
                   },
                   child: const Text(
                     "Não tem uma conta? Cadastre-se",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],

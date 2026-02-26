@@ -18,31 +18,27 @@
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* Estilo para evitar que a tela fique branca enquanto carrega */
+    /* Estilo para o fundo enquanto carrega */
     body {
-      background-color: #0D47A1; /* O azul escuro que você escolheu */
+      background-color: #1B263B; 
       margin: 0;
       padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      font-family: sans-serif;
     }
   </style>
 </head>
 <body>
+  <script src="flutter_bootstrap.js" async></script>
+
   <script>
-    {{footer_script}}
-    
-    // Configuração manual do Flutter para forçar o renderizador HTML
-    window.addEventListener('load', function(ev) {
-      _flutter.loader.load({
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine({
-            renderer: "html", // ISSO AQUI RESOLVE A TELA BRANCA
-          }).then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
-    });
+    // Se você quiser forçar o renderizador HTML (mais leve para web), 
+    // a forma correta nas versões novas do Flutter é via script de inicialização,
+    // mas o flutter_bootstrap.js já cuida da maior parte disso.
   </script>
-  <script src="flutter_bootstrap.js"></script>
 </body>
 </html>

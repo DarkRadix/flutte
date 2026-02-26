@@ -44,12 +44,21 @@ class _JogosPageState extends State<JogosPage> {
         return;
       }
 
+      // BUSCA DE PERFIL: Agora focada em pegar o 'username' que salvamos no cadastro
       final data = await _supabase.from('profiles').select().eq('id', user.id).maybeSingle();
 
       if (mounted) {
         setState(() {
           _isAdmin = data?['is_admin'] ?? false;
-          _meuUsername = data?['username'] ?? data?['full_name'] ?? "Jogador";
+          
+          // LÓGICA DE NOME: 
+          // 1. Tenta o username do banco (profiles)
+          // 2. Tenta o display_name dos metadados do Auth
+          // 3. Se tudo falhar, usa "Jogador"
+          _meuUsername = data?['username'] ?? 
+                         user.userMetadata?['display_name'] ?? 
+                         "Jogador";
+          
           _gamesStream = _supabase.from('games').stream(primaryKey: ['id']).order('created_at', ascending: false);
           _initialized = true; 
         });
@@ -63,14 +72,15 @@ class _JogosPageState extends State<JogosPage> {
 
   Future<void> _entrarNoJogo(String gameId) async {
     try {
+      // Inserimos o nome correto que buscamos no _inicializarPagina
       await _supabase.from('participants').insert({
         'game_id': gameId,
         'user_id': _supabase.auth.currentUser!.id,
-        'user_name': _meuUsername,
+        'user_name': _meuUsername, 
       });
-      _notificar('Você entrou no jogo!', Colors.green);
+      _notificar('Você entrou na lista!', Colors.green);
     } catch (e) {
-      _notificar('Erro ao entrar ou você já está na lista.', Colors.orange);
+      _notificar('Erro ao entrar na lista.', Colors.orange);
     }
   }
 
@@ -80,13 +90,13 @@ class _JogosPageState extends State<JogosPage> {
         'game_id': gameId,
         'user_id': _supabase.auth.currentUser!.id,
       });
-      _notificar('Você saiu do jogo.', Colors.grey);
+      _notificar('Você saiu da lista.', Colors.grey);
     } catch (e) {
       _notificar('Erro ao sair.', Colors.red);
     }
   }
 
-  // --- MODAL DA SALA COM LÓGICA DE BOTÃO DINÂMICO ---
+  // --- MODAL DA SALA (DETALHES) ---
 
   void _abrirSala(Map<String, dynamic> game) {
     showModalBottomSheet(
@@ -104,7 +114,7 @@ class _JogosPageState extends State<JogosPage> {
               Text(game['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
               const Divider(),
               const SizedBox(height: 10),
-              const Text("Jogadores Confirmados:", style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const Text("Confirmados:", style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
               
               Expanded(
                 child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -115,47 +125,52 @@ class _JogosPageState extends State<JogosPage> {
                     }
                     
                     final lista = snapshot.data ?? [];
-                    
-                    // LÓGICA: Verifica se o meu ID está na lista que veio do banco
                     bool euJaEstouNaLista = lista.any((p) => p['user_id'] == meuId);
 
                     return Column(
                       children: [
                         Expanded(
                           child: lista.isEmpty 
-                            ? const Center(child: Text("Ninguém na lista ainda."))
+                            ? const Center(child: Text("Ninguém confirmou ainda."))
                             : ListView.builder(
                                 itemCount: lista.length,
-                                itemBuilder: (context, i) => ListTile(
-                                  leading: const CircleAvatar(child: Icon(Icons.person, size: 20)),
-                                  title: Text(lista[i]['user_name'] ?? 'Anônimo'),
-                                  trailing: lista[i]['user_id'] == meuId 
-                                    ? const Icon(Icons.check_circle, color: Colors.green) 
-                                    : null,
-                                ),
+                                itemBuilder: (context, i) {
+                                  final isMe = lista[i]['user_id'] == meuId;
+                                  return ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: isMe ? Colors.blue : Colors.grey[200],
+                                      child: Icon(Icons.person, size: 20, color: isMe ? Colors.white : Colors.grey),
+                                    ),
+                                    title: Text(
+                                      lista[i]['user_name'] ?? 'Anônimo',
+                                      style: TextStyle(fontWeight: isMe ? FontWeight.bold : FontWeight.normal),
+                                    ),
+                                    trailing: isMe ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                                  );
+                                },
                               ),
                         ),
                         
                         const SizedBox(height: 20),
                         
-                        // EXIBIÇÃO CONDICIONAL DOS BOTÕES
                         if (!euJaEstouNaLista) 
                           SizedBox(
                             width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.all(15)),
                               onPressed: () => _entrarNoJogo(game['id'].toString()).then((_) => Navigator.pop(context)),
-                              child: const Text("PARTICIPAR DO JOGO", style: TextStyle(color: Colors.white)),
+                              icon: const Icon(Icons.add_task, color: Colors.white),
+                              label: const Text("CONFIRMAR MINHA PRESENÇA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
                           )
                         else
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
+                              style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red), padding: const EdgeInsets.all(15)),
                               onPressed: () => _sairDoJogo(game['id'].toString()).then((_) => Navigator.pop(context)),
                               icon: const Icon(Icons.exit_to_app, color: Colors.red),
-                              label: const Text("SAIR DA LISTA", style: TextStyle(color: Colors.red)),
+                              label: const Text("RETIRAR MEU NOME", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                             ),
                           ),
                       ],
@@ -170,7 +185,7 @@ class _JogosPageState extends State<JogosPage> {
     );
   }
 
-  // --- RESTANTE DA INTERFACE ---
+  // --- INTERFACE PRINCIPAL ---
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +200,8 @@ class _JogosPageState extends State<JogosPage> {
       backgroundColor: const Color(0xFF1B263B),
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text(_isAdmin ? 'Gestão de Reservas' : 'Partidas de Hoje', 
+        elevation: 0,
+        title: Text(_isAdmin ? 'Painel Administrativo' : 'Partidas Disponíveis', 
           style: const TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
@@ -198,10 +214,19 @@ class _JogosPageState extends State<JogosPage> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_isAdmin) _buildFormulario(),
+            Text("Olá, $_meuUsername!", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 5),
+            const Text("Organize ou participe de partidas hoje.", style: TextStyle(color: Colors.white60, fontSize: 14)),
             const SizedBox(height: 25),
-            const Text("Toque no jogo para entrar na lista", style: TextStyle(color: Colors.white54, fontSize: 12)),
+            if (_isAdmin) ...[
+              const Text("CRIAR NOVA PARTIDA", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 10),
+              _buildFormulario(),
+              const SizedBox(height: 30),
+            ],
+            const Text("PARTIDAS ATIVAS", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12)),
             const SizedBox(height: 10),
             _buildListaRealtime(),
           ],
@@ -224,11 +249,11 @@ class _JogosPageState extends State<JogosPage> {
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            height: 45,
+            height: 50,
             child: ElevatedButton(
               onPressed: _isLoading ? null : _salvarJogo,
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1976D2)),
-              child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("CRIAR JOGO", style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("PUBLICAR JOGO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -239,7 +264,7 @@ class _JogosPageState extends State<JogosPage> {
   Widget _buildDrop(String label, IconData icon, String value, List<String> items, Function(String?) onChanged) {
     return DropdownButtonFormField<String>(
       value: value,
-      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, color: Colors.blue)),
       items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
       onChanged: onChanged,
     );
@@ -251,7 +276,7 @@ class _JogosPageState extends State<JogosPage> {
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
         final games = snapshot.data!;
-        if (games.isEmpty) return const Text("Nenhum jogo criado.", style: TextStyle(color: Colors.white54));
+        if (games.isEmpty) return const Center(child: Text("Nenhum jogo disponível no momento.", style: TextStyle(color: Colors.white54)));
 
         return ListView.builder(
           shrinkWrap: true,
@@ -259,15 +284,22 @@ class _JogosPageState extends State<JogosPage> {
           itemCount: games.length,
           itemBuilder: (context, index) {
             final g = games[index];
+            final bool isFutebol = g['name'].toString().contains('Futebol');
             return Card(
-              margin: const EdgeInsets.symmetric(vertical: 6),
+              elevation: 3,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: ListTile(
                 onTap: () => _abrirSala(g),
-                leading: Icon(g['name'].contains('Futebol') ? Icons.sports_soccer : Icons.sports_basketball, color: Colors.blue),
-                title: Text(g['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                leading: CircleAvatar(
+                  backgroundColor: Colors.blue[50],
+                  child: Icon(isFutebol ? Icons.sports_soccer : Icons.sports_basketball, color: Colors.blue),
+                ),
+                title: Text(g['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text("Toque para ver quem vai"),
                 trailing: _isAdmin 
-                  ? IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _supabase.from('games').delete().match({'id': g['id']}))
-                  : const Icon(Icons.chevron_right),
+                  ? IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => _supabase.from('games').delete().match({'id': g['id']}))
+                  : const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
               ),
             );
           },
@@ -281,15 +313,15 @@ class _JogosPageState extends State<JogosPage> {
     setState(() => _isLoading = true);
     try {
       await _supabase.from('games').insert({'name': nomeFinal});
-      _notificar('Jogo criado!', Colors.green);
+      _notificar('Partida criada com sucesso!', Colors.green);
     } catch (e) {
-      _notificar('Erro: $e', Colors.red);
+      _notificar('Erro ao criar partida.', Colors.red);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _notificar(String msg, Color cor) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: cor));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: cor, behavior: SnackBarBehavior.floating));
   }
 }

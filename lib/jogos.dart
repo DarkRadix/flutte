@@ -100,18 +100,15 @@ class _JogosPageState extends State<JogosPage> {
       });
     }
   }
-
-  // --- CORREÇÃO DO DATEPICKER (Resolve o ping do VS Code) ---
   Future<void> _selecionarData() async {
-    // 1. Garantir que o contexto ainda é válido
     if (!mounted) return;
-
+    FocusScope.of(context).unfocus();
+    final DateTime hoje = DateTime.now();
     final DateTime? colhida = await showDatePicker(
       context: context,
-      initialDate: _dataSelecionada, // Use a variável do estado
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2026),
-      // Removido o locale daqui para evitar conflito com o main.dart
+      initialDate: _dataSelecionada.isBefore(hoje) ? hoje : _dataSelecionada,
+      firstDate: hoje,
+      lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -119,12 +116,6 @@ class _JogosPageState extends State<JogosPage> {
               primary: Color(0xFF0D47A1),
               onPrimary: Colors.white,
               onSurface: Colors.black,
-            ),
-            // Isso garante que o botão de texto use o idioma correto
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF0D47A1),
-              ),
             ),
           ),
           child: child!,
@@ -136,8 +127,6 @@ class _JogosPageState extends State<JogosPage> {
       setState(() => _dataSelecionada = colhida);
     }
   }
-
-  // ... (Restante das funções: _abrirPainelConvites, _abrirListaParaConvidar, _entrarNoJogo, _abrirSala, _sairDoJogo, _salvarJogo, _notificar permanecem as mesmas)
 
   void _abrirPainelConvites() {
     showModalBottomSheet(
@@ -341,14 +330,6 @@ class _JogosPageState extends State<JogosPage> {
                 ],
               ),
               const Divider(),
-              const Text(
-                "Confirmados:",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
               Expanded(
                 child: FutureBuilder<List<Map<String, dynamic>>>(
                   future: _supabase
@@ -437,7 +418,6 @@ class _JogosPageState extends State<JogosPage> {
       _notificar('Erro ao sair.', Colors.red);
     }
   }
-
   Future<void> _salvarJogo() async {
     final nomeFinal =
         "$_esporteSelecionado - ${_dataSelecionada.day}/${_dataSelecionada.month} - $_horarioSelecionado";
@@ -451,13 +431,12 @@ class _JogosPageState extends State<JogosPage> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
   void _notificar(String msg, Color cor) {
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: cor));
   }
-
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
@@ -470,7 +449,6 @@ class _JogosPageState extends State<JogosPage> {
       backgroundColor: const Color(0xFF1B263B),
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
         title: const Text(
           'Arena de Jogos',
           style: TextStyle(

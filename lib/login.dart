@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-// IMPORTANTE: Certifique-se de que o nome do arquivo abaixo está correto
+
 import 'jogos.dart';
 import 'cadastro.dart';
 
@@ -32,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      // ALTERAÇÃO AQUI: Agora ele envia para a JogosPage
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const JogosPage()),

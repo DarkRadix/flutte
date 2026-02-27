@@ -33,8 +33,7 @@ class _CadastroPageState extends State<CadastroPage> {
     setState(() => loading = true);
 
     try {
-      // 1. Cria o usuário no Auth enviando o NOME COMPLETO nos metadados
-      // Usamos 'full_name' para que o Supabase reconheça como nome oficial
+
       final AuthResponse res = await Supabase.instance.client.auth.signUp(
         email: email,
         password: senha,
@@ -43,11 +42,11 @@ class _CadastroPageState extends State<CadastroPage> {
 
       final user = res.user;
 
-      // 2. SALVA O NOME NA TABELA PROFILES
+     
       if (user != null) {
         await Supabase.instance.client.from('profiles').upsert({
           'id': user.id,
-          'username': nome, // Aqui salva o nome completo (ex: João Silva)
+          'username': nome, 
           'is_admin': false,
         });
 
@@ -145,7 +144,7 @@ class _CadastroPageState extends State<CadastroPage> {
                       TextField(
                         controller: nomeController,
                         textCapitalization: TextCapitalization
-                            .words, // Abre teclado com iniciais maiúsculas
+                            .words, 
                         decoration: InputDecoration(
                           labelText: "Nome Completo",
                           prefixIcon: Icon(

@@ -26,10 +26,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        useMaterial3: true, // Adicionado para melhor compatibilidade visual
+        useMaterial3: true,
       ),
 
-      // --- CONFIGURAÇÃO DE IDIOMA DEFINITIVA ---
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -39,9 +38,9 @@ class MyApp extends StatelessWidget {
       locale: const Locale(
         'pt',
         'BR',
-      ), // <--- ADICIONE ESTA LINHA EXATAMENTE AQUI
+      ),
 
-      // -----------------------------------------
+ 
       initialRoute: '/',
       routes: {
         '/': (context) => const AuthCheck(),

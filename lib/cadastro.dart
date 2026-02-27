@@ -21,40 +21,53 @@ class _CadastroPageState extends State<CadastroPage> {
   Future<void> cadastrar() async {
     FocusScope.of(context).unfocus();
 
-    if (nomeController.text.isEmpty || emailController.text.isEmpty || senhaController.text.isEmpty) {
+    final nome = nomeController.text.trim();
+    final email = emailController.text.trim();
+    final senha = senhaController.text.trim();
+
+    if (nome.isEmpty || email.isEmpty || senha.isEmpty) {
       _notificar('Preencha todos os campos!', Colors.orange);
       return;
     }
 
     setState(() => loading = true);
+
     try {
-      // 1. Cria o usuário no Auth do Supabase
+      // 1. Cria o usuário no Auth enviando o NOME COMPLETO nos metadados
+      // Usamos 'full_name' para que o Supabase reconheça como nome oficial
       final AuthResponse res = await Supabase.instance.client.auth.signUp(
-        email: emailController.text.trim(),
-        password: senhaController.text.trim(),
-        // Mantemos os metadados por segurança
-        data: {'display_name': nomeController.text.trim()}, 
+        email: email,
+        password: senha,
+        data: {'full_name': nome},
       );
 
       final user = res.user;
 
-      // 2. SALVA O NOME NA TABELA PROFILES (O segredo para aparecer o nome!)
+      // 2. SALVA O NOME NA TABELA PROFILES
       if (user != null) {
         await Supabase.instance.client.from('profiles').upsert({
           'id': user.id,
-          'username': nomeController.text.trim(), // Salva na coluna username do seu banco
-          'is_admin': false, // Padrão para novos usuários
+          'username': nome, // Aqui salva o nome completo (ex: João Silva)
+          'is_admin': false,
         });
+
+        if (!mounted) return;
+
+        if (res.session == null) {
+          _notificar(
+            'Cadastro realizado! Verifique seu e-mail para confirmar.',
+            Colors.blue,
+          );
+        } else {
+          _notificar('Bem-vindo, $nome!', Colors.green);
+        }
+
+        Navigator.pop(context);
       }
-
-      if (!mounted) return;
-
-      _notificar('Cadastro realizado! Verifique seu e-mail.', Colors.green);
-      Navigator.pop(context); 
     } on AuthException catch (e) {
       _notificar(e.message, Colors.redAccent);
     } catch (e) {
-      _notificar('Erro inesperado: $e', Colors.redAccent);
+      _notificar('Erro ao realizar cadastro: $e', Colors.redAccent);
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -62,14 +75,18 @@ class _CadastroPageState extends State<CadastroPage> {
 
   void _notificar(String msg, Color cor) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: cor),
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: cor,
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true, 
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -90,7 +107,11 @@ class _CadastroPageState extends State<CadastroPage> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                const Icon(Icons.person_add_alt_1_rounded, size: 80, color: Colors.white),
+                const Icon(
+                  Icons.person_add_alt_1_rounded,
+                  size: 80,
+                  color: Colors.white,
+                ),
                 const SizedBox(height: 10),
                 const Text(
                   "Criar Conta",
@@ -106,24 +127,34 @@ class _CadastroPageState extends State<CadastroPage> {
                   style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
                 const SizedBox(height: 30),
-
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: const [
-                      BoxShadow(color: Colors.black26, blurRadius: 15, offset: Offset(0, 5))
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 15,
+                        offset: Offset(0, 5),
+                      ),
                     ],
                   ),
                   child: Column(
                     children: [
                       TextField(
                         controller: nomeController,
+                        textCapitalization: TextCapitalization
+                            .words, // Abre teclado com iniciais maiúsculas
                         decoration: InputDecoration(
                           labelText: "Nome Completo",
-                          prefixIcon: Icon(Icons.person_outline, color: azulMedio),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          prefixIcon: Icon(
+                            Icons.person_outline,
+                            color: azulMedio,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -132,8 +163,13 @@ class _CadastroPageState extends State<CadastroPage> {
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           labelText: "E-mail",
-                          prefixIcon: Icon(Icons.email_outlined, color: azulMedio),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          prefixIcon: Icon(
+                            Icons.email_outlined,
+                            color: azulMedio,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -142,12 +178,22 @@ class _CadastroPageState extends State<CadastroPage> {
                         obscureText: !_senhaVisivel,
                         decoration: InputDecoration(
                           labelText: "Senha",
-                          prefixIcon: Icon(Icons.lock_outline, color: azulMedio),
-                          suffixIcon: IconButton(
-                            icon: Icon(_senhaVisivel ? Icons.visibility : Icons.visibility_off),
-                            onPressed: () => setState(() => _senhaVisivel = !_senhaVisivel),
+                          prefixIcon: Icon(
+                            Icons.lock_outline,
+                            color: azulMedio,
                           ),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _senhaVisivel
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () =>
+                                setState(() => _senhaVisivel = !_senhaVisivel),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 30),
@@ -159,11 +205,18 @@ class _CadastroPageState extends State<CadastroPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: azulEscuro,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: loading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text("FINALIZAR CADASTRO", style: TextStyle(fontWeight: FontWeight.bold)),
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  "FINALIZAR CADASTRO",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
                         ),
                       ),
                     ],
@@ -174,7 +227,10 @@ class _CadastroPageState extends State<CadastroPage> {
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     "Já tem uma conta? Faça login",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
